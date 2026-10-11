@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String            @id @default(cuid())
+  email        String            @unique
+  passwordHash String
+  name         String
+  timezone     String            @default("Asia/Kolkata")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  records      ProductivityRecord[]
+  settings     UserSettings?
+  notifications Notification[]
+  @@index([createdAt])
+}
+
+model ProductivityRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String
+  title       String
+  description String   @default("")
+  status      String   @default("active")
+  priority    String   @default("medium")
+  dueDate     DateTime?
+  completedAt DateTime?
+  progress    Int      @default(0)
+  details     Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  checkIns    HabitCheckIn[]
+  @@index([userId, type, status])
+  @@index([userId, dueDate])
+  @@index([userId, createdAt])
+}
+
+model HabitCheckIn {
+  id        String   @id @default(cuid())
+  recordId  String
+  record    ProductivityRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  date      String
+  createdAt DateTime @default(now())
+  @@unique([recordId, date])
+  @@index([recordId, date])
+}
+
+model UserSettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme                 String   @default("light")
+  timezone              String   @default("Asia/Kolkata")
+  dailyStudyTarget      Int      @default(180)
+  weeklyStudyTarget     Int      @default(900)
+  notificationsEnabled  Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  @@index([userId, read, createdAt])
+}
